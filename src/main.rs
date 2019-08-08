@@ -1,6 +1,6 @@
 mod arch;
-mod parser;
-mod test;
+//mod parser;
+//mod test;
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -15,7 +15,7 @@ struct Opt {
 
 fn main() {
     let opt = Opt::from_args();
-    if !opt.input_string.is_some() && !opt.input_file.is_some() {
+    if opt.input_string.is_none() && opt.input_file.is_none() {
         Opt::clap().print_long_help().unwrap();
         eprintln!("A source file or string is required");
         return;
@@ -26,11 +26,11 @@ fn main() {
         return;
     }
     println!("{:?}", opt);
-    let ast;
+    /*let ast;
     if let Some(ref istr) = opt.input_string {
         ast = parser::Ast::from_str(istr, "./CMDLINE");
     } else {
         ast = parser::Ast::from_file(opt.input_file.as_ref().unwrap().to_str().expect("Invalid Unicode in specified file path"));
     }
-    println!("{:?}", ast);
+    println!("{:?}", ast);*/
 }

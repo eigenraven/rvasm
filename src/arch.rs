@@ -1,225 +1,51 @@
-#[derive(Clone, Copy, Debug)]
-#[allow(non_camel_case_types)]
-pub enum Register {
-    x0,
-    x1,
-    x2,
-    x3,
-    x4,
-    x5,
-    x6,
-    x7,
-    x8,
-    x9,
-    x10,
-    x11,
-    x12,
-    x13,
-    x14,
-    x15,
-    x16,
-    x17,
-    x18,
-    x19,
-    x20,
-    x21,
-    x22,
-    x23,
-    x24,
-    x25,
-    x26,
-    x27,
-    x28,
-    x29,
-    x30,
-    x31,
+
+use std::collections::HashMap;
+use smallvec::SmallVec;
+
+/*trait Register where Self: std::marker::Sized {
+    fn name(&self) -> &'static str;
+    fn abi_name(&self) -> &'static str;
+    fn from_name(name: &str) -> Option<Self>;
+    fn number(&self) -> i32;
+    fn from_number(n: i32) -> Option<Self>;
+}*/
+
+// Values' [last:first] bits map onto instructions' [first+vlast-vfirst:first] bits.
+#[derive(Copy, Clone, Debug, Default)]
+struct BitRangeMap {
+    value_last: i32,
+    value_first: i32,
+    instruction_first: i32,
 }
 
-impl Register {
-    pub fn name(&self) -> &'static str {
-        match self {
-            x0 => "x0",
-            x1 => "x1",
-            x2 => "x2",
-            x3 => "x3",
-            x4 => "x4",
-            x5 => "x5",
-            x6 => "x6",
-            x7 => "x7",
-            x8 => "x8",
-            x9 => "x9",
-            x10 => "x10",
-            x11 => "x11",
-            x12 => "x12",
-            x13 => "x13",
-            x14 => "x14",
-            x15 => "x15",
-            x16 => "x16",
-            x17 => "x17",
-            x18 => "x18",
-            x19 => "x19",
-            x20 => "x20",
-            x21 => "x21",
-            x22 => "x22",
-            x23 => "x23",
-            x24 => "x24",
-            x25 => "x25",
-            x26 => "x26",
-            x27 => "x27",
-            x28 => "x28",
-            x29 => "x29",
-            x30 => "x30",
-            x31 => "x31",
-        }
-    }
-
-    pub fn abi_name(&self) -> &'static str {
-        match self {
-            x0 => "zero",
-            x1 => "ra",
-            x2 => "sp",
-            x3 => "gp",
-            x4 => "tp",
-            x5 => "t0",
-            x6 => "t1",
-            x7 => "t2",
-            x8 => "s0",
-            x9 => "s1",
-            x10 => "a0",
-            x11 => "a1",
-            x12 => "a2",
-            x13 => "a3",
-            x14 => "a4",
-            x15 => "a5",
-            x16 => "a6",
-            x17 => "a7",
-            x18 => "s2",
-            x19 => "s3",
-            x20 => "s4",
-            x21 => "s5",
-            x22 => "s6",
-            x23 => "s7",
-            x24 => "s8",
-            x25 => "s9",
-            x26 => "s10",
-            x27 => "s11",
-            x28 => "t3",
-            x29 => "t4",
-            x30 => "t5",
-            x31 => "t6",
-        }
-    }
-
-    pub fn from_name(name: &str) -> Option<Self> {
-        match name.to_ascii_lowercase().as_ref() {
-            "x0" | "zero" => Some(Register::x0),
-            "x1" | "ra" => Some(Register::x1),
-            "x2" | "sp" => Some(Register::x2),
-            "x3" | "gp" => Some(Register::x3),
-            "x4" | "tp" => Some(Register::x4),
-            "x5" | "t0" => Some(Register::x5),
-            "x6" | "t1" => Some(Register::x6),
-            "x7" | "t2" => Some(Register::x7),
-            "x8" | "s0" | "fp" => Some(Register::x8),
-            "x9" | "s1" => Some(Register::x9),
-            "x10" | "a0" => Some(Register::x10),
-            "x11" | "a1" => Some(Register::x11),
-            "x12" | "a2" => Some(Register::x12),
-            "x13" | "a3" => Some(Register::x13),
-            "x14" | "a4" => Some(Register::x14),
-            "x15" | "a5" => Some(Register::x15),
-            "x16" | "a6" => Some(Register::x16),
-            "x17" | "a7" => Some(Register::x17),
-            "x18" | "s2" => Some(Register::x18),
-            "x19" | "s3" => Some(Register::x19),
-            "x20" | "s4" => Some(Register::x20),
-            "x21" | "s5" => Some(Register::x21),
-            "x22" | "s6" => Some(Register::x22),
-            "x23" | "s7" => Some(Register::x23),
-            "x24" | "s8" => Some(Register::x24),
-            "x25" | "s9" => Some(Register::x25),
-            "x26" | "s10" => Some(Register::x26),
-            "x27" | "s11" => Some(Register::x27),
-            "x28" | "t3" => Some(Register::x28),
-            "x29" | "t4" => Some(Register::x29),
-            "x30" | "t5" => Some(Register::x30),
-            "x31" | "t6" => Some(Register::x31),
-            _ => None,
-        }
-    }
-
-    pub fn number(&self) -> i32 {
-        match self {
-            x0 => 0,
-            x1 => 1,
-            x2 => 2,
-            x3 => 3,
-            x4 => 4,
-            x5 => 5,
-            x6 => 6,
-            x7 => 7,
-            x8 => 8,
-            x9 => 9,
-            x10 => 10,
-            x11 => 11,
-            x12 => 12,
-            x13 => 13,
-            x14 => 14,
-            x15 => 15,
-            x16 => 16,
-            x17 => 17,
-            x18 => 18,
-            x19 => 19,
-            x20 => 20,
-            x21 => 21,
-            x22 => 22,
-            x23 => 23,
-            x24 => 24,
-            x25 => 25,
-            x26 => 26,
-            x27 => 27,
-            x28 => 28,
-            x29 => 29,
-            x30 => 30,
-            x31 => 31,
-        }
-    }
-
-    pub fn from_number(n: i32) -> Option<Self> {
-        match n {
-            0 => Some(Register::x0),
-            1 => Some(Register::x1),
-            2 => Some(Register::x2),
-            3 => Some(Register::x3),
-            4 => Some(Register::x4),
-            5 => Some(Register::x5),
-            6 => Some(Register::x6),
-            7 => Some(Register::x7),
-            8 => Some(Register::x8),
-            9 => Some(Register::x9),
-            10 => Some(Register::x10),
-            11 => Some(Register::x11),
-            12 => Some(Register::x12),
-            13 => Some(Register::x13),
-            14 => Some(Register::x14),
-            15 => Some(Register::x15),
-            16 => Some(Register::x16),
-            17 => Some(Register::x17),
-            18 => Some(Register::x18),
-            19 => Some(Register::x19),
-            20 => Some(Register::x20),
-            21 => Some(Register::x21),
-            22 => Some(Register::x22),
-            23 => Some(Register::x23),
-            24 => Some(Register::x24),
-            25 => Some(Register::x25),
-            26 => Some(Register::x26),
-            27 => Some(Register::x27),
-            28 => Some(Register::x28),
-            29 => Some(Register::x29),
-            30 => Some(Register::x30),
-            31 => Some(Register::x31),
-            _ => None,
-        }
-    }
+#[derive(Clone, Debug, Default)]
+struct InstructionField {
+    name: String,
+    /// Total length of the value in bits
+    length: i32,
+    encoding: SmallVec<[BitRangeMap; 2]>,
 }
+
+#[derive(Clone, Debug, Default)]
+struct InstructionFormat {
+    name: String,
+    fields: SmallVec<[InstructionField; 8]>,
+}
+
+#[derive(Debug, Default)]
+struct RiscVAbi {
+    // Meta
+    loaded_names: Vec<String>,
+    loaded_codes: Vec<String>,
+    loaded_specs: Vec<String>,
+    // Consts
+    consts: HashMap<String, i32>,
+    // Registers
+    register_names: HashMap<i32, Vec<String>>,
+    register_name_lookup: HashMap<String, i32>,
+    register_sizes: HashMap<i32, i32>,
+    // Instruction formats
+    instruction_formats: Vec<InstructionFormat>
+}
+
+

@@ -1,0 +1,140 @@
+[meta]
+name = "RISC-V 32-bits base integer ISA"
+code = "RV32I"
+spec = "Unprivileged 20190608-Base-Ratified"
+
+[consts]
+# Size of base integer registers in bits
+XLEN = 32
+# Alignment of instructions in bits
+IALIGN = 32
+# Maximum length of instructions in bits
+ILEN = 32
+
+[registers]
+[registers.names]
+0 = ["x0", "zero"]
+1 = ["x1", "ra"]
+2 = ["x2", "sp"]
+3 = ["x3", "gp"]
+4 = ["x4", "tp"]
+5 = ["x5", "t0"]
+6 = ["x6", "t1"]
+7 = ["x7", "t2"]
+8 = ["x8", "fp", "s0"]
+9 = ["x9", "s1"]
+10 = ["x10", "a0"]
+11 = ["x11", "a1"]
+12 = ["x12", "a2"]
+13 = ["x13", "a3"]
+14 = ["x14", "a4"]
+15 = ["x15", "a5"]
+16 = ["x16", "a6"]
+17 = ["x17", "a7"]
+18 = ["x18", "s2"]
+19 = ["x19", "s3"]
+20 = ["x20", "s4"]
+21 = ["x21", "s5"]
+22 = ["x22", "s6"]
+23 = ["x23", "s7"]
+24 = ["x24", "s8"]
+25 = ["x25", "s9"]
+26 = ["x26", "s10"]
+27 = ["x27", "s11"]
+28 = ["x28", "t3"]
+29 = ["x29", "t4"]
+30 = ["x30", "t5"]
+31 = ["x31", "t6"]
+
+[registers.lengths]
+0 = "XLEN"
+1 = "XLEN"
+2 = "XLEN"
+3 = "XLEN"
+4 = "XLEN"
+5 = "XLEN"
+6 = "XLEN"
+7 = "XLEN"
+8 = "XLEN"
+9 = "XLEN"
+10 = "XLEN"
+11 = "XLEN"
+12 = "XLEN"
+13 = "XLEN"
+14 = "XLEN"
+15 = "XLEN"
+16 = "XLEN"
+17 = "XLEN"
+18 = "XLEN"
+19 = "XLEN"
+20 = "XLEN"
+21 = "XLEN"
+22 = "XLEN"
+23 = "XLEN"
+24 = "XLEN"
+25 = "XLEN"
+26 = "XLEN"
+27 = "XLEN"
+28 = "XLEN"
+29 = "XLEN"
+30 = "XLEN"
+31 = "XLEN"
+
+[instruction_formats]
+[instruction_formats.R]
+opcode = { length = 7, encoding = [[6,0,0]] }
+# Destination register
+rd = { length = 5, encoding = [[4,0,7]] }
+# Function selector
+funct3 = { length = 3, encoding = [[2,0,12]] }
+# Source register 1
+rs1 = { length = 5, encoding = [[4,0,15]] }
+# Source register 2
+rs2 = { length = 5, encoding = [[4,0,20]] }
+# Secondary function selector
+funct7 = { length = 7, encoding = [[6,0,25]] }
+
+[instruction_formats.I]
+opcode = { length = 7, encoding = [[6,0,0]] }
+rd = { length = 5, encoding = [[4,0,7]] }
+funct3 = { length = 3, encoding = [[2,0,12]] }
+rs1 = { length = 5, encoding = [[4,0,15]] }
+imm = { length = 12, encoding = [[11,0,20]] }
+
+[instruction_formats.S]
+opcode = { length = 7, encoding = [[6,0,0]] }
+# IMM
+funct3 = { length = 3, encoding = [[2,0,12]] }
+rs1 = { length = 5, encoding = [[4,0,15]] }
+rs2 = { length = 5, encoding = [[4,0,20]] }
+imm = { length = 12, encoding = [[4,0,7], [11,5,25]] }
+
+[instruction_formats.B]
+opcode = { length = 7, encoding = [[6,0,0]] }
+# IMM
+funct3 = { length = 3, encoding = [[2,0,12]] }
+rs1 = { length = 5, encoding = [[4,0,15]] }
+rs2 = { length = 5, encoding = [[4,0,20]] }
+imm = { length = 13, encoding = [[11,11,7], [4,1,8], [10,5,25], [12,12,31]] }
+
+[instruction_formats.U]
+opcode = { length = 7, encoding = [[6,0,0]] }
+rd = { length = 5, encoding = [[4,0,7]] }
+imm = { length = 32, encoding = [[31,12,12]] }
+
+[instruction_formats.J]
+opcode = { length = 7, encoding = [[6,0,0]] }
+rd = { length = 5, encoding = [[4,0,7]] }
+imm = { length = 32, encoding = [[19,12,12], [11,11,20], [10,1,21], [20,20,31]] }
+
+
+[instructions]
+[instructions.LUI]
+format = "U"
+args = ["rd", "imm"]
+fields = { opcode = 0b0110111 }
+
+[instructions.ADD]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b000, funct7 = 0b0000000 }

@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 smallvec = "0.6.10"
 structopt = "0.2.18"
+toml = "0.5.1"

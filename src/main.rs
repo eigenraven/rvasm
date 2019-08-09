@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod arch;
 //mod parser;
 //mod test;
@@ -11,6 +12,9 @@ struct Opt {
     input_file: Option<PathBuf>,
     #[structopt(short = "s", long = "string")]
     input_string: Option<String>,
+
+    #[structopt(short = "v", long = "verbose")]
+    verbose: bool,
 }
 
 fn main() {
@@ -34,6 +38,15 @@ fn main() {
         .unwrap();
     let mut rv = crate::arch::RiscVAbi::new();
     rv.load_single_cfg_string(&rv32i_str).expect("Parse error");
+
+    if opt.verbose {
+        for abi in rv.get_loaded_abis() {
+            println!(
+                "Loaded ABI: {} - '{}' based on spec '{}'",
+                abi.code, abi.name, abi.spec
+            );
+        }
+    }
 
     /*let ast;
     if let Some(ref istr) = opt.input_string {

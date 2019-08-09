@@ -2,13 +2,29 @@ use smallvec::SmallVec;
 use std::collections::HashMap;
 use toml;
 
-/*trait Register where Self: std::marker::Sized {
-    fn name(&self) -> &'static str;
-    fn abi_name(&self) -> &'static str;
-    fn from_name(name: &str) -> Option<Self>;
-    fn number(&self) -> i32;
-    fn from_number(n: i32) -> Option<Self>;
-}*/
+#[derive(Clone, Debug, Default)]
+pub struct Register {
+    pub index: i32,
+    pub names: Vec<String>,
+    pub size_in_bits: i32,
+}
+
+impl Register {
+    pub fn new(index: i32) -> Self {
+        Self {
+            index,
+            ..Default::default()
+        }
+    }
+
+    pub fn get_main_name(&self) -> Option<&str> {
+        self.names.get(0).map(|x| x.as_ref())
+    }
+
+    pub fn get_abi_name(&self) -> Option<&str> {
+        self.names.get(1).or_else(|| self.names.get(0)).map(|x| x.as_ref())
+    }
+}
 
 // Values' [last:first] bits map onto instructions' [first+vlast-vfirst:first] bits.
 #[derive(Copy, Clone, Debug, Default)]
@@ -79,14 +95,90 @@ pub struct RiscVAbi {
     // Consts
     consts: HashMap<String, i64>,
     // Registers
-    register_names: HashMap<i32, Vec<String>>,
+    registers: HashMap<i32, Register>,
     register_name_lookup: HashMap<String, i32>,
-    register_sizes: HashMap<i32, i32>,
     // Instruction formats
     instruction_formats: Vec<InstructionFormat>,
     // Instructions
     instructions: Vec<InstructionDefinition>,
     instruction_name_lookup: HashMap<String, usize>,
+}
+
+pub struct AbiFileInfo<'a> {
+    pub name: &'a str,
+    pub code: &'a str,
+    pub spec: &'a str,
+}
+
+// Main functionality
+impl RiscVAbi {
+    pub fn get_loaded_abis(&self) -> Vec<AbiFileInfo> {
+        let mut v = Vec::new();
+        assert_eq!(self.loaded_names.len(), self.loaded_codes.len());
+        assert_eq!(self.loaded_names.len(), self.loaded_specs.len());
+        for ((name, code), spec) in self
+            .loaded_names
+            .iter()
+            .zip(self.loaded_codes.iter())
+            .zip(self.loaded_specs.iter())
+        {
+            v.push(AbiFileInfo { name, code, spec });
+        }
+        v
+    }
+
+    // Consts
+
+    pub fn get_const(&self, name: &str) -> Option<i64> {
+        self.consts.get(name).copied()
+    }
+
+    // Registers
+
+    pub fn get_register(&self, rnum: i32) -> Option<&Register> {
+        self.registers.get(&rnum)
+    }
+
+    pub fn get_register_by_name(&self, rname: &str) -> Option<&Register> {
+        self.register_name_lookup.get(rname).and_then(|i| self.get_register(*i))
+    }
+
+    pub fn get_all_registers(&self) -> &HashMap<i32, Register> {
+        &self.registers
+    }
+
+    // Instruction Formats
+
+    pub fn get_instruction_format(&self, index: usize) -> Option<&InstructionFormat> {
+        self.instruction_formats.get(index)
+    }
+
+    pub fn get_instruction_format_by_name(&self, name: &str) -> Option<&InstructionFormat> {
+        self.instruction_name_lookup
+            .get(name)
+            .and_then(|i| self.get_instruction_format(*i))
+    }
+
+    pub fn get_all_instruction_formats(&self) -> &[InstructionFormat] {
+        &self.instruction_formats
+    }
+
+    // Instructions
+
+    pub fn get_instruction(&self, index: usize) -> Option<&InstructionDefinition> {
+        self.instructions.get(index)
+    }
+
+    /// Automatically converts name to lowercase
+    pub fn get_instruction_by_name(&self, name: &str) -> Option<&InstructionDefinition> {
+        self.instruction_name_lookup
+            .get(&name.to_ascii_lowercase())
+            .and_then(|i| self.get_instruction(*i))
+    }
+
+    pub fn get_all_instructions(&self) -> &[InstructionDefinition] {
+        &self.instructions
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -100,6 +192,7 @@ pub enum LoadError {
     BadInstructionFormat(String),
 }
 
+// Creation & Parsing
 impl RiscVAbi {
     pub fn new() -> Self {
         Self::default()
@@ -202,16 +295,26 @@ impl RiscVAbi {
                     let names = names.as_array().ok_or_else(|| {
                         LoadError::BadType(format!("registers.names.{} value", number))
                     })?;
+                    self.registers.entry(number).or_insert_with(|| Register::new(number));
                     let mut newnames = Vec::new();
                     for name in names.iter() {
                         let name = name.as_str().ok_or_else(|| {
                             LoadError::BadType(format!("registers.names.{} element", number))
                         })?;
                         newnames.push(name.to_owned());
-                        // FIXME: Handling name overrides/removals?
-                        self.register_name_lookup.insert(name.to_owned(), number);
                     }
-                    self.register_names.insert(number, newnames);
+                    self.registers.get_mut(&number).unwrap().names = newnames;
+                }
+            }
+            if let Some(register_lengths) = registers.get("lengths") {
+                let register_lengths = register_lengths.as_table().ok_or_else(|| BadType("registers.lengths"))?;
+                for (number, length) in register_lengths.iter() {
+                    let number: i32 = number.parse().map_err(|_| {
+                        LoadError::BadType(format!("registers.lengths.{} key", number))
+                    })?;
+                    let length = Self::toml_int(&self.consts, format!("registers.lengths.{} value", number), length)? as i32;
+                    self.registers.entry(number).or_insert_with(|| Register::new(number));
+                    self.registers.get_mut(&number).unwrap().size_in_bits = length;
                 }
             }
         }
@@ -300,7 +403,7 @@ impl RiscVAbi {
                 .as_table()
                 .ok_or_else(|| BadType("instructions"))?;
             for (iname, itable) in instructions.iter() {
-                let iname = iname.to_lowercase();
+                let iname = iname.to_ascii_lowercase();
                 let itable = itable
                     .as_table()
                     .ok_or_else(|| LoadError::BadType(format!("instructions.{}", iname)))?;
@@ -386,6 +489,13 @@ impl RiscVAbi {
             }
         }
 
+        // update register name mapping
+        self.register_name_lookup.clear();
+        for (num, reg) in self.registers.iter() {
+            for name in reg.names.iter() {
+                self.register_name_lookup.insert(name.to_owned(), *num);
+            }
+        }
         Ok(())
     }
 }

@@ -1,7 +1,8 @@
+#![feature(box_syntax)]
 #![allow(dead_code)]
 mod arch;
-//mod parser;
-//mod test;
+mod parser;
+mod test;
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -36,7 +37,7 @@ fn main() {
         .unwrap()
         .read_to_string(&mut rv32i_str)
         .unwrap();
-    let mut rv = crate::arch::RiscVAbi::new();
+    let mut rv = crate::arch::RiscVSpec::new();
     rv.load_single_cfg_string(&rv32i_str).expect("Parse error");
 
     if opt.verbose {
@@ -48,11 +49,11 @@ fn main() {
         }
     }
 
-    /*let ast;
+    let ast;
     if let Some(ref istr) = opt.input_string {
-        ast = parser::Ast::from_str(istr, "./CMDLINE");
+        ast = parser::ast_from_str(istr, &rv);
     } else {
-        ast = parser::Ast::from_file(opt.input_file.as_ref().unwrap().to_str().expect("Invalid Unicode in specified file path"));
+        ast = parser::ast_from_file(opt.input_file.as_ref().unwrap().to_str().expect("Invalid Unicode in specified file path"), &rv);
     }
-    println!("{:?}", ast);*/
+    println!("{:?}", ast);
 }

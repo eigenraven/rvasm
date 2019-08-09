@@ -87,7 +87,7 @@ impl InstructionDefinition {
 }
 
 #[derive(Debug, Default)]
-pub struct RiscVAbi {
+pub struct RiscVSpec {
     // Meta
     loaded_names: Vec<String>,
     loaded_codes: Vec<String>,
@@ -111,7 +111,7 @@ pub struct AbiFileInfo<'a> {
 }
 
 // Main functionality
-impl RiscVAbi {
+impl RiscVSpec {
     pub fn get_loaded_abis(&self) -> Vec<AbiFileInfo> {
         let mut v = Vec::new();
         assert_eq!(self.loaded_names.len(), self.loaded_codes.len());
@@ -193,7 +193,7 @@ pub enum LoadError {
 }
 
 // Creation & Parsing
-impl RiscVAbi {
+impl RiscVSpec {
     pub fn new() -> Self {
         Self::default()
     }

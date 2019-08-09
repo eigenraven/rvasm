@@ -1,0 +1,56 @@
+
+use crate::arch;
+use super::{parse_u64, parse_register, Node};
+
+#![arguments(spec: &arch::RiscVSpec)]
+
+comment = #quiet<";" [^\n]+>
+whitechar = #quiet<[ \r\t]> / #quiet<comment> / "\\\n"
+whitespace = #quiet<whitechar+>
+newline = #quiet<whitespace?> "\n"
+register -> Node = #quiet< s:$([a-zA-Z._][a-zA-Z0-9_.]+) {? parse_register(spec, s) } > / #expected("register")
+idstr -> &'input str = #quiet< !register $([a-zA-Z_.][a-zA-Z0-9_.]+) > / #expected("identifier")
+identifier -> Node = s:idstr { Node::Identifier(s.to_owned()) }
+
+integer -> Node = #quiet< "0x" n:$([0-9a-fA-F_]+) { parse_u64(n, 16) } >
+        / #quiet< "0o" n:$([0-7_]+) { parse_u64(n, 8) } >
+        / #quiet< "0b" n:$([01_]+) { parse_u64(n, 2) } >
+        / #quiet< "0d"? n:$([0-7_]+) { parse_u64(n, 10) } >
+        / #expected("integer")
+
+escape -> u8 = _:"\\n" {"\n".as_bytes()[0]} / _:"\\t" {"\t".as_bytes()[0]}
+       / _:"\\\\" {"\\".as_bytes()[0]} / _:"\\r" {"\r".as_bytes()[0]}
+       / "\\x" n:$([0-9a-fA-F]*<2>) { u64::from_str_radix(n, 16).unwrap() as u8 }
+
+str_char<quote> = escape / c:$(!quote .) { c.as_bytes()[0] }
+
+char_literal -> Node = "'" s:str_char<"'"> "'" { Node::CharLiteral(s) }
+bytes_literal -> Node = "\"" s:str_char<"\"">* "\"" { Node::StringLiteral(s) }
+
+negation -> Node = "-" e:expression { Node::Negation(box e) }
+pub expr_atom -> Node = whitespace? "(" whitespace? e:expression whitespace? ")" whitespace? {e}
+                      / whitespace? n:negation whitespace? {n}
+                      / whitespace? i:integer whitespace? {i}
+                      / whitespace? i:identifier whitespace? {i}
+                      / whitespace? c:char_literal whitespace? {c}
+
+pub expression -> Node = #infix<expr_atom> {
+	#L x "+" y { Node::Plus(box x, box y) }
+	   x "-" y { Node::Minus(box x, box y) }
+	#L x "*" y { Node::Times(box x, box y) }
+	   x "/" y { Node::Divide(box x, box y) }
+}
+
+pub label -> Node = whitespace? i:idstr whitespace? ":" { Node::Label(i.to_owned()) }
+pub argument -> Node = whitespace? e:(register / expression) whitespace? {Node::Argument(box e)}
+instruction0 -> Node = whitespace? nm:idstr whitespace? { Node::Instruction(nm.to_owned(), vec![]) }
+instruction1 -> Node = whitespace? nm:idstr whitespace a0:argument whitespace? { Node::Instruction(nm.to_owned(), vec![a0]) }
+instructionN -> Node = whitespace? nm:idstr whitespace a0:argument aN:( "," an:argument {an} )+ {
+    let mut v = aN;
+    v.insert(0, a0);
+    Node::Instruction(nm.to_owned(), v)
+}
+pub instruction -> Node = instructionN / instruction1 / instruction0
+
+pub top_element -> Node = (whitespace / newline)* n:(label / instruction) {n}
+pub top_level -> Node = n:(top_element ** newline) (whitespace / newline)* { Node::Root(n) }

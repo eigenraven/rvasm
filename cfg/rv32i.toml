@@ -129,12 +129,12 @@ imm = { length = 32, encoding = [[19,12,12], [11,11,20], [10,1,21], [20,20,31]] 
 
 
 [instructions]
-[instructions.LUI]
+[instructions.lui]
 format = "U"
 args = ["rd", "imm"]
 fields = { opcode = 0b0110111 }
 
-[instructions.ADD]
+[instructions.add]
 format = "R"
 args = ["rd", "rs1", "rs2"]
 fields = { opcode = 0b0110011, funct3 = 0b000, funct7 = 0b0000000 }

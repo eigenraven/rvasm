@@ -7,10 +7,10 @@ code = "Zhelp"
 # Version on the specification document this is based on
 spec = "Help spec 1.0"
 # Required base ISAs
-requires = ["RV32I"]
+#requires = ["RV32I"]
 
 [consts]
-# these will be substituded in where numbers are expected and strings are provided
+# these will be substituted in where numbers are expected and strings are provided
 EVERYTHING = 42 
 
 [registers]
@@ -32,3 +32,19 @@ EVERYTHING = 42
 # as [ifirst+vlast-vfirst:ifirst] bits of the encoded instruction
 # Can specify multiple copies for multiple sub-fields encoding the same value
 opcode = { length = 7, encoding = [[6,0,0]] }
+
+[instruction_formats.U]
+opcode = { length = 7, encoding = [[6,0,0]] }
+rd = { length = 5, encoding = [[4,0,7]] }
+imm = { length = 32, encoding = [[31,12,12]] }
+
+[instructions]
+# [instructions.<name>]
+[instructions.lui]
+# One of the instruction formats defined above
+format = "U"
+# Fields of the format in order as they appear as arguments
+args = ["rd", "imm"]
+# Fields that are set to a constant value
+fields = { opcode = 0b0110111 }
+# All bits of the instruction should be covered by args and fields keys above combined

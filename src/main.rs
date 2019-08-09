@@ -10,7 +10,7 @@ use structopt::StructOpt;
 struct Opt {
     input_file: Option<PathBuf>,
     #[structopt(short = "s", long = "string")]
-    input_string: Option<String>
+    input_string: Option<String>,
 }
 
 fn main() {
@@ -25,7 +25,16 @@ fn main() {
         eprintln!("Only one source allowed: either a file or a string");
         return;
     }
-    println!("{:?}", opt);
+
+    let mut rv32i_str = String::new();
+    use std::io::prelude::*;
+    std::fs::File::open("./cfg/rv32i.toml")
+        .unwrap()
+        .read_to_string(&mut rv32i_str)
+        .unwrap();
+    let mut rv = crate::arch::RiscVAbi::new();
+    rv.load_single_cfg_string(&rv32i_str).expect("Parse error");
+
     /*let ast;
     if let Some(ref istr) = opt.input_string {
         ast = parser::Ast::from_str(istr, "./CMDLINE");

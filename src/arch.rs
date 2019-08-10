@@ -22,7 +22,10 @@ impl Register {
     }
 
     pub fn get_abi_name(&self) -> Option<&str> {
-        self.names.get(1).or_else(|| self.names.get(0)).map(|x| x.as_ref())
+        self.names
+            .get(1)
+            .or_else(|| self.names.get(0))
+            .map(|x| x.as_ref())
     }
 }
 
@@ -35,12 +38,16 @@ pub struct BitRangeMap {
 }
 
 impl BitRangeMap {
-    fn new(value_last: i32, value_first: i32, instruction_first: i32) -> Self {
+    pub fn new(value_last: i32, value_first: i32, instruction_first: i32) -> Self {
         Self {
             value_last,
             value_first,
             instruction_first,
         }
+    }
+
+    pub fn instruction_last(&self) -> i32 {
+        self.instruction_first + self.value_last - self.value_first
     }
 }
 
@@ -52,10 +59,21 @@ pub struct InstructionField {
     pub encoding: SmallVec<[BitRangeMap; 2]>,
 }
 
+impl InstructionField {
+    fn calculate_last_encoded_bit_index(&self) -> i32 {
+        self.encoding
+            .iter()
+            .map(|e| e.instruction_last())
+            .max()
+            .unwrap_or(0)
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct InstructionFormat {
     pub name: String,
     pub fields: SmallVec<[InstructionField; 8]>,
+    pub ilen: usize,
 }
 
 impl InstructionFormat {
@@ -64,6 +82,14 @@ impl InstructionFormat {
             name,
             ..Default::default()
         }
+    }
+
+    fn calculate_last_encoded_bit_index(&self) -> i32 {
+        self.fields
+            .iter()
+            .map(|e| e.calculate_last_encoded_bit_index())
+            .max()
+            .unwrap_or(0)
     }
 }
 
@@ -140,7 +166,9 @@ impl RiscVSpec {
     }
 
     pub fn get_register_by_name(&self, rname: &str) -> Option<&Register> {
-        self.register_name_lookup.get(rname).and_then(|i| self.get_register(*i))
+        self.register_name_lookup
+            .get(rname)
+            .and_then(|i| self.get_register(*i))
     }
 
     pub fn get_all_registers(&self) -> &HashMap<i32, Register> {
@@ -295,7 +323,9 @@ impl RiscVSpec {
                     let names = names.as_array().ok_or_else(|| {
                         LoadError::BadType(format!("registers.names.{} value", number))
                     })?;
-                    self.registers.entry(number).or_insert_with(|| Register::new(number));
+                    self.registers
+                        .entry(number)
+                        .or_insert_with(|| Register::new(number));
                     let mut newnames = Vec::new();
                     for name in names.iter() {
                         let name = name.as_str().ok_or_else(|| {
@@ -307,13 +337,21 @@ impl RiscVSpec {
                 }
             }
             if let Some(register_lengths) = registers.get("lengths") {
-                let register_lengths = register_lengths.as_table().ok_or_else(|| BadType("registers.lengths"))?;
+                let register_lengths = register_lengths
+                    .as_table()
+                    .ok_or_else(|| BadType("registers.lengths"))?;
                 for (number, length) in register_lengths.iter() {
                     let number: i32 = number.parse().map_err(|_| {
                         LoadError::BadType(format!("registers.lengths.{} key", number))
                     })?;
-                    let length = Self::toml_int(&self.consts, format!("registers.lengths.{} value", number), length)? as i32;
-                    self.registers.entry(number).or_insert_with(|| Register::new(number));
+                    let length = Self::toml_int(
+                        &self.consts,
+                        format!("registers.lengths.{} value", number),
+                        length,
+                    )? as i32;
+                    self.registers
+                        .entry(number)
+                        .or_insert_with(|| Register::new(number));
                     self.registers.get_mut(&number).unwrap().size_in_bits = length;
                 }
             }
@@ -393,6 +431,7 @@ impl RiscVSpec {
                     }
                     fmt.fields.push(fld);
                 }
+                fmt.ilen = fmt.calculate_last_encoded_bit_index() as usize + 1;
                 self.instruction_formats.push(fmt);
             }
         }

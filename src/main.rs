@@ -1,4 +1,5 @@
 #![feature(box_syntax)]
+#![warn(clippy::all)]
 #![allow(dead_code)]
 mod arch;
 mod parser;
@@ -53,7 +54,14 @@ fn main() {
     if let Some(ref istr) = opt.input_string {
         ast = parser::ast_from_str(istr, &rv);
     } else {
-        ast = parser::ast_from_file(opt.input_file.as_ref().unwrap().to_str().expect("Invalid Unicode in specified file path"), &rv);
+        ast = parser::ast_from_file(
+            opt.input_file
+                .as_ref()
+                .unwrap()
+                .to_str()
+                .expect("Invalid Unicode in specified file path"),
+            &rv,
+        );
     }
     println!("{:?}", ast);
 }

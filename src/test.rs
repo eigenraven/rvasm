@@ -1,8 +1,7 @@
-
 #[test]
 fn test_parser_on_all_inputs() {
-    use std::path::Path;
     use crate::parser::ast_from_file;
+    use std::path::Path;
 
     let mut rv32i_str = String::new();
     use std::io::prelude::*;
@@ -13,7 +12,9 @@ fn test_parser_on_all_inputs() {
     let mut rv = crate::arch::RiscVSpec::new();
     rv.load_single_cfg_string(&rv32i_str).expect("Parse error");
 
-    let dir = Path::new("./test/").read_dir().expect("Can't open ./test folder of sample inputs");
+    let dir = Path::new("./test/")
+        .read_dir()
+        .expect("Can't open ./test folder of sample inputs");
     for entry in dir {
         if entry.is_err() {
             continue;

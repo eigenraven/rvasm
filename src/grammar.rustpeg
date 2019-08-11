@@ -1,6 +1,6 @@
 
 use crate::arch;
-use super::{parse_u64, parse_register, Node};
+use super::Node;
 
 #![arguments(spec: &arch::RiscVSpec)]
 
@@ -8,14 +8,14 @@ comment = #quiet<";" [^\n]+>
 whitechar = #quiet<[ \r\t]> / #quiet<comment> / "\\\n"
 whitespace = #quiet<whitechar+>
 newline = #quiet<whitespace?> "\n"
-register -> Node = #quiet< s:$([a-zA-Z._][a-zA-Z0-9_.]+) {? parse_register(spec, s) } > / #expected("register")
+register -> Node = #quiet< s:$([a-zA-Z._][a-zA-Z0-9_.]+) {? Node::parse_register(spec, s) } > / #expected("register")
 idstr -> &'input str = #quiet< !register $([a-zA-Z_.][a-zA-Z0-9_.]+) > / #expected("identifier")
 identifier -> Node = s:idstr { Node::Identifier(s.to_owned()) }
 
-integer -> Node = #quiet< "0x" n:$([0-9a-fA-F_]+) { parse_u64(n, 16) } >
-        / #quiet< "0o" n:$([0-7_]+) { parse_u64(n, 8) } >
-        / #quiet< "0b" n:$([01_]+) { parse_u64(n, 2) } >
-        / #quiet< "0d"? n:$([0-7_]+) { parse_u64(n, 10) } >
+integer -> Node = #quiet< "0x" n:$([0-9a-fA-F_]+) { Node::parse_u64(n, 16) } >
+        / #quiet< "0o" n:$([0-7_]+) { Node::parse_u64(n, 8) } >
+        / #quiet< "0b" n:$([01_]+) { Node::parse_u64(n, 2) } >
+        / #quiet< "0d"? n:$([0-7_]+) { Node::parse_u64(n, 10) } >
         / #expected("integer")
 
 escape -> u8 = _:"\\n" {"\n".as_bytes()[0]} / _:"\\t" {"\t".as_bytes()[0]}
@@ -24,21 +24,25 @@ escape -> u8 = _:"\\n" {"\n".as_bytes()[0]} / _:"\\t" {"\t".as_bytes()[0]}
 
 str_char<quote> = escape / c:$(!quote .) { c.as_bytes()[0] }
 
-char_literal -> Node = "'" s:str_char<"'"> "'" { Node::CharLiteral(s) }
+char_literal -> Node = "'" s:str_char<"'"> "'" { Node::Integer(s as u64) }
 bytes_literal -> Node = "\"" s:str_char<"\"">* "\"" { Node::StringLiteral(s) }
 
 negation -> Node = "-" e:expression { Node::Negation(box e) }
-pub expr_atom -> Node = whitespace? "(" whitespace? e:expression whitespace? ")" whitespace? {e}
-                      / whitespace? n:negation whitespace? {n}
+pub expr_atom -> Node = whitespace? "(" whitespace? e:expression whitespace? ")" whitespace? {e.simplify()}
+                      / whitespace? n:negation whitespace? {n.simplify()}
                       / whitespace? i:integer whitespace? {i}
                       / whitespace? i:identifier whitespace? {i}
+                      / whitespace? "$" whitespace? { Node::PcValue }
                       / whitespace? c:char_literal whitespace? {c}
 
 pub expression -> Node = #infix<expr_atom> {
-	#L x "+" y { Node::Plus(box x, box y) }
-	   x "-" y { Node::Minus(box x, box y) }
-	#L x "*" y { Node::Times(box x, box y) }
-	   x "/" y { Node::Divide(box x, box y) }
+   #L x "<<" y { Node::Shl(box x, box y).simplify() }
+      x ">>" y { Node::Shr(box x, box y).simplify() }
+      x ">>>" y { Node::Ashr(box x, box y).simplify() }
+	#L x "+" y { Node::Plus(box x, box y).simplify() }
+	   x "-" y { Node::Minus(box x, box y).simplify() }
+	#L x "*" y { Node::Times(box x, box y).simplify() }
+	   x "/" y { Node::Divide(box x, box y).simplify() }
 }
 
 pub label -> Node = whitespace? i:idstr whitespace? ":" { Node::Label(i.to_owned()) }

@@ -49,11 +49,43 @@ impl BitRangeMap {
     pub fn instruction_last(&self) -> i32 {
         self.instruction_first + self.value_last - self.value_first
     }
+
+    pub fn value_bitmask(&self) -> u64 {
+        let value_len = self.value_last - self.value_first + 1;
+        ((1 << value_len) - 1) << self.value_first
+    }
+
+    pub fn encode_into(&self, bytes: &mut [u8], value: u64) {
+        let mut enc_value = (value & self.value_bitmask()) >> self.value_first;
+        let mut enc_mask = self.value_bitmask() >> self.value_first;
+        let mut instr_byte = self.instruction_first as usize / 8;
+        enc_value <<= self.instruction_first as usize % 8;
+        enc_mask <<= self.instruction_first as usize % 8;
+        while enc_mask != 0 {
+            let bmask = (enc_mask & 0xff) as u8;
+            let bval = (enc_value & 0xff) as u8;
+            // zero out the bits to encode
+            bytes[instr_byte] &= !bmask;
+            // encode bits
+            bytes[instr_byte] |= bval;
+            // move on to next 8 bits
+            enc_mask >>= 8;
+            enc_value >>= 8;
+            instr_byte += 1;
+        }
+    }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug)]
+pub enum FieldType {
+    Register,
+    Value,
+}
+
+#[derive(Clone, Debug)]
 pub struct InstructionField {
     pub name: String,
+    pub vtype: FieldType,
     /// Total length of the value in bits
     pub length: i32,
     pub encoding: SmallVec<[BitRangeMap; 2]>,
@@ -100,7 +132,7 @@ pub struct InstructionDefinition {
     /// Indices into InstructionFormat.fields
     pub args: Vec<usize>,
     /// Indices into InstructionFormat.fields paired with assigned values
-    pub fields: Vec<(usize, i64)>,
+    pub fields: Vec<(usize, u64)>,
 }
 
 impl InstructionDefinition {
@@ -109,6 +141,33 @@ impl InstructionDefinition {
             name,
             ..Default::default()
         }
+    }
+
+    pub fn get_format<'spec>(&self, spec: &'spec RiscVSpec) -> &'spec InstructionFormat {
+        spec.get_instruction_format(self.format_idx).unwrap()
+    }
+
+    pub fn encode_into(
+        &self,
+        bytes: &mut [u8],
+        spec: &RiscVSpec,
+        argvals: &[u64],
+    ) -> Result<(), ()> {
+        assert_eq!(argvals.len(), self.args.len());
+        let fmt = self.get_format(spec);
+        for (fldid, fldval) in self.fields.iter() {
+            let fld: &InstructionField = &fmt.fields[*fldid];
+            fld.encoding
+                .iter()
+                .for_each(|e| e.encode_into(bytes, *fldval));
+        }
+        for (argid, argval) in self.args.iter().zip(argvals) {
+            let arg: &InstructionField = &fmt.fields[*argid];
+            arg.encoding
+                .iter()
+                .for_each(|e| e.encode_into(bytes, *argval));
+        }
+        Ok(())
     }
 }
 
@@ -371,8 +430,41 @@ impl RiscVSpec {
                     let fldtable = fldtable.as_table().ok_or_else(|| {
                         LoadError::BadType(format!("instruction_formats.{}.{}", fmtname, fldname))
                     })?;
-                    let mut fld = InstructionField::default();
-                    fld.name = fldname.to_owned();
+                    let mut fld = InstructionField {
+                        name: fldname.to_owned(),
+                        vtype: FieldType::Value,
+                        length: 0,
+                        encoding: Default::default(),
+                    };
+                    let fldtype = fldtable
+                        .get("type")
+                        .ok_or_else(|| {
+                            LoadError::MissingNode(format!(
+                                "instruction_formats.{}.{}.type",
+                                fmtname, fldname
+                            ))
+                        })?
+                        .as_str()
+                        .ok_or_else(|| {
+                            LoadError::BadType(format!(
+                                "instruction_formats.{}.{}.type",
+                                fmtname, fldname
+                            ))
+                        })?;
+                    match fldtype {
+                        "value" => {
+                            fld.vtype = FieldType::Value;
+                        }
+                        "register" => {
+                            fld.vtype = FieldType::Register;
+                        }
+                        _ => {
+                            return Err(LoadError::BadType(format!(
+                                "instruction_formats.{}.{}.type",
+                                fmtname, fldname
+                            )));
+                        }
+                    }
                     fld.length = Self::toml_int(
                         &self.consts,
                         format!("instruction_formats.{}.{}.length", fmtname, fldname),
@@ -514,7 +606,7 @@ impl RiscVSpec {
                                 iname, fname
                             ))
                         })?;
-                    insn.fields.push((fi, fv));
+                    insn.fields.push((fi, fv as u64));
                 }
 
                 if self

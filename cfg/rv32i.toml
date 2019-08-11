@@ -82,50 +82,50 @@ ILEN = 32
 
 [instruction_formats]
 [instruction_formats.R]
-opcode = { length = 7, encoding = [[6,0,0]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
 # Destination register
-rd = { length = 5, encoding = [[4,0,7]] }
+rd = { type = "register", length = 5, encoding = [[4,0,7]] }
 # Function selector
-funct3 = { length = 3, encoding = [[2,0,12]] }
+funct3 = { type = "value", length = 3, encoding = [[2,0,12]] }
 # Source register 1
-rs1 = { length = 5, encoding = [[4,0,15]] }
+rs1 = { type = "register", length = 5, encoding = [[4,0,15]] }
 # Source register 2
-rs2 = { length = 5, encoding = [[4,0,20]] }
+rs2 = { type = "register", length = 5, encoding = [[4,0,20]] }
 # Secondary function selector
-funct7 = { length = 7, encoding = [[6,0,25]] }
+funct7 = { type = "value", length = 7, encoding = [[6,0,25]] }
 
 [instruction_formats.I]
-opcode = { length = 7, encoding = [[6,0,0]] }
-rd = { length = 5, encoding = [[4,0,7]] }
-funct3 = { length = 3, encoding = [[2,0,12]] }
-rs1 = { length = 5, encoding = [[4,0,15]] }
-imm = { length = 12, encoding = [[11,0,20]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
+rd = { type = "register", length = 5, encoding = [[4,0,7]] }
+funct3 = { type = "value", length = 3, encoding = [[2,0,12]] }
+rs1 = { type = "register", length = 5, encoding = [[4,0,15]] }
+imm = { type = "value", length = 12, encoding = [[11,0,20]] }
 
 [instruction_formats.S]
-opcode = { length = 7, encoding = [[6,0,0]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
 # IMM
-funct3 = { length = 3, encoding = [[2,0,12]] }
-rs1 = { length = 5, encoding = [[4,0,15]] }
-rs2 = { length = 5, encoding = [[4,0,20]] }
-imm = { length = 12, encoding = [[4,0,7], [11,5,25]] }
+funct3 = { type = "value", length = 3, encoding = [[2,0,12]] }
+rs1 = { type = "register", length = 5, encoding = [[4,0,15]] }
+rs2 = { type = "register", length = 5, encoding = [[4,0,20]] }
+imm = { type = "value", length = 12, encoding = [[4,0,7], [11,5,25]] }
 
 [instruction_formats.B]
-opcode = { length = 7, encoding = [[6,0,0]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
 # IMM
-funct3 = { length = 3, encoding = [[2,0,12]] }
-rs1 = { length = 5, encoding = [[4,0,15]] }
-rs2 = { length = 5, encoding = [[4,0,20]] }
-imm = { length = 13, encoding = [[11,11,7], [4,1,8], [10,5,25], [12,12,31]] }
+funct3 = { type = "value", length = 3, encoding = [[2,0,12]] }
+rs1 = { type = "register", length = 5, encoding = [[4,0,15]] }
+rs2 = { type = "register", length = 5, encoding = [[4,0,20]] }
+imm = { type = "value", length = 13, encoding = [[11,11,7], [4,1,8], [10,5,25], [12,12,31]] }
 
 [instruction_formats.U]
-opcode = { length = 7, encoding = [[6,0,0]] }
-rd = { length = 5, encoding = [[4,0,7]] }
-imm = { length = 32, encoding = [[31,12,12]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
+rd = { type = "register", length = 5, encoding = [[4,0,7]] }
+imm = { type = "value", length = 32, encoding = [[31,12,12]] }
 
 [instruction_formats.J]
-opcode = { length = 7, encoding = [[6,0,0]] }
-rd = { length = 5, encoding = [[4,0,7]] }
-imm = { length = 32, encoding = [[19,12,12], [11,11,20], [10,1,21], [20,20,31]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
+rd = { type = "register", length = 5, encoding = [[4,0,7]] }
+imm = { type = "value", length = 32, encoding = [[19,12,12], [11,11,20], [10,1,21], [20,20,31]] }
 
 
 [instructions]

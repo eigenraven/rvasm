@@ -1,10 +1,13 @@
 #![feature(box_syntax)]
+#![feature(box_patterns)]
 #![warn(clippy::all)]
 #![allow(dead_code)]
 mod arch;
+mod emit;
 mod parser;
 mod test;
 
+use emit::flatbin;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -14,6 +17,9 @@ struct Opt {
     input_file: Option<PathBuf>,
     #[structopt(short = "s", long = "string")]
     input_string: Option<String>,
+
+    #[structopt(short = "o", long = "output-file")]
+    output_file: PathBuf,
 
     #[structopt(short = "v", long = "verbose")]
     verbose: bool,
@@ -39,7 +45,7 @@ fn main() {
         .read_to_string(&mut rv32i_str)
         .unwrap();
     let mut rv = crate::arch::RiscVSpec::new();
-    rv.load_single_cfg_string(&rv32i_str).expect("Parse error");
+    rv.load_single_cfg_string(&rv32i_str).expect("Config error");
 
     if opt.verbose {
         for abi in rv.get_loaded_abis() {
@@ -52,7 +58,7 @@ fn main() {
 
     let ast;
     if let Some(ref istr) = opt.input_string {
-        ast = parser::ast_from_str(istr, &rv);
+        ast = parser::ast_from_str(&istr.replace(";", "\n"), &rv);
     } else {
         ast = parser::ast_from_file(
             opt.input_file
@@ -63,5 +69,15 @@ fn main() {
             &rv,
         );
     }
-    println!("{:?}", ast);
+    let ast = ast.expect("Parse error");
+
+    use std::convert::TryInto;
+    let bin = flatbin::emit_flat_binary(&rv, &ast).expect("Emit error");
+    for word in bin.chunks(4) {
+        let word: [u8; 4] = word.try_into().unwrap();
+        print!("{:032b} ", u32::from_le_bytes(word));
+    }
+    println!();
+
+    std::fs::File::create(opt.output_file).unwrap().write_all(&bin).unwrap();
 }

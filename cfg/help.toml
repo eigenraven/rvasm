@@ -27,16 +27,16 @@ EVERYTHING = 42
 [instruction_formats]
 # [instruction_formats.Format_Name]
 [instruction_formats.R]
-# Field name = { length = <total field size in bits>, encoding = [[vlast,vfirst,ifirst],... }
+# Field name = { type = "value/register", length = <total field size in bits>, encoding = [[vlast,vfirst,ifirst],... }
 # Encoding: copies [vlast:vfirst] (inclusive ranges) bits from value
 # as [ifirst+vlast-vfirst:ifirst] bits of the encoded instruction
 # Can specify multiple copies for multiple sub-fields encoding the same value
-opcode = { length = 7, encoding = [[6,0,0]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
 
 [instruction_formats.U]
-opcode = { length = 7, encoding = [[6,0,0]] }
-rd = { length = 5, encoding = [[4,0,7]] }
-imm = { length = 32, encoding = [[31,12,12]] }
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
+rd = { type = "register", length = 5, encoding = [[4,0,7]] }
+imm = { type = "value", length = 32, encoding = [[31,12,12]] }
 
 [instructions]
 # [instructions.<name>]

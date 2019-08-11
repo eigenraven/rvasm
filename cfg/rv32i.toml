@@ -138,3 +138,8 @@ fields = { opcode = 0b0110111 }
 format = "R"
 args = ["rd", "rs1", "rs2"]
 fields = { opcode = 0b0110011, funct3 = 0b000, funct7 = 0b0000000 }
+
+[instructions.addi]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b000 }

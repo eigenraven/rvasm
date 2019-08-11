@@ -15,7 +15,7 @@ identifier -> Node = s:idstr { Node::Identifier(s.to_owned()) }
 integer -> Node = #quiet< "0x" n:$([0-9a-fA-F_]+) { Node::parse_u64(n, 16) } >
         / #quiet< "0o" n:$([0-7_]+) { Node::parse_u64(n, 8) } >
         / #quiet< "0b" n:$([01_]+) { Node::parse_u64(n, 2) } >
-        / #quiet< "0d"? n:$([0-7_]+) { Node::parse_u64(n, 10) } >
+        / #quiet< "0d"? n:$([0-9_]+) { Node::parse_u64(n, 10) } >
         / #expected("integer")
 
 escape -> u8 = _:"\\n" {"\n".as_bytes()[0]} / _:"\\t" {"\t".as_bytes()[0]}

@@ -49,7 +49,7 @@ struct Opt {
         long = "output-file",
         help = "Output (assembled) file path"
     )]
-    output_file: PathBuf,
+    output_file: Option<PathBuf>,
 
     #[structopt(short = "v", long = "verbose", help = "Enable additional output")]
     verbose: bool,
@@ -176,8 +176,12 @@ fn main() {
         println!();
     }
 
-    std::fs::File::create(opt.output_file)
-        .expect("Could not open output file for writing")
-        .write_all(&bin)
-        .expect("Could not write to output file");
+    if let Some(output_file) = opt.output_file {
+        std::fs::File::create(output_file)
+            .expect("Could not open output file for writing")
+            .write_all(&bin)
+            .expect("Could not write to output file");
+    } else {
+        eprintln!("Warning: no output file specified so none was created.");
+    }
 }

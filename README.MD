@@ -50,8 +50,8 @@ Which displays the 32-bit instructions as 32 binary digits, rightmost one is the
 (Swapped around from the actual little endian byte encoding for readability)
 
 ## Defining instruction sets
-Create a copy of <cfg/help.toml> and follow the comments to define instruction formats and specific encodings.
-You can also take a look at the included RV32I definition in <cfg/rv32i.toml>.
+Create a copy of [cfg/help.toml](cfg/help.toml) and follow the comments to define instruction formats and specific encodings.
+You can also take a look at the included RV32I definition in [cfg/rv32i.toml](cfg/rv32i.toml).
 
 ## Supported directives
 Apart from the instructions defined in the TOML files, the assembler supports a few directives:

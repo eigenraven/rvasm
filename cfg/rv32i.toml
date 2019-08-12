@@ -101,6 +101,14 @@ funct3 = { type = "value", length = 3, encoding = [[2,0,12]] }
 rs1 = { type = "register", length = 5, encoding = [[4,0,15]] }
 imm = { type = "value", length = 12, encoding = [[11,0,20]] }
 
+[instruction_formats.Ishift]
+opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
+rd = { type = "register", length = 5, encoding = [[4,0,7]] }
+funct3 = { type = "value", length = 3, encoding = [[2,0,12]] }
+rs1 = { type = "register", length = 5, encoding = [[4,0,15]] }
+imm = { type = "value", length = 5, encoding = [[4,0,20]] }
+shcst = { type = "value", length = 7, encoding = [[6,0,25]] }
+
 [instruction_formats.S]
 opcode = { type = "value", length = 7, encoding = [[6,0,0]] }
 # IMM
@@ -129,17 +137,204 @@ imm = { type = "value", length = 32, encoding = [[19,12,12], [11,11,20], [10,1,2
 
 
 [instructions]
+# Following the order in Chapter 25, Instruction Set Listings
 [instructions.lui]
 format = "U"
 args = ["rd", "imm"]
 fields = { opcode = 0b0110111 }
+
+[instructions.auipc]
+format = "U"
+args = ["rd", "imm"]
+fields = { opcode = 0b0010111 }
+
+
+[instructions.jal]
+format = "J"
+args = ["rd", "imm"]
+fields = { opcode = 0b1101111 }
+
+[instructions.jalr]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b1100111 }
+
+
+[instructions.beq]
+format = "B"
+args = ["rs1", "rs2", "imm"]
+fields = { opcode = 0b1100011, funct3 = 0b000 }
+
+[instructions.bne]
+format = "B"
+args = ["rs1", "rs2", "imm"]
+fields = { opcode = 0b1100011, funct3 = 0b001 }
+
+[instructions.blt]
+format = "B"
+args = ["rs1", "rs2", "imm"]
+fields = { opcode = 0b1100011, funct3 = 0b100 }
+
+[instructions.bge]
+format = "B"
+args = ["rs1", "rs2", "imm"]
+fields = { opcode = 0b1100011, funct3 = 0b101 }
+
+[instructions.bltu]
+format = "B"
+args = ["rs1", "rs2", "imm"]
+fields = { opcode = 0b1100011, funct3 = 0b110 }
+
+[instructions.bgeu]
+format = "B"
+args = ["rs1", "rs2", "imm"]
+fields = { opcode = 0b1100011, funct3 = 0b111 }
+
+
+# lb dest, 2(x1)
+[instructions.lb]
+format = "I"
+args = ["rd", "imm", "rs1"]
+fields = { opcode = 0b0000011, funct3 = 0b000 }
+[instructions.lh]
+format = "I"
+args = ["rd", "imm", "rs1"]
+fields = { opcode = 0b0000011, funct3 = 0b001 }
+[instructions.lw]
+format = "I"
+args = ["rd", "imm", "rs1"]
+fields = { opcode = 0b0000011, funct3 = 0b010 }
+[instructions.lbu]
+format = "I"
+args = ["rd", "imm", "rs1"]
+fields = { opcode = 0b0000011, funct3 = 0b100 }
+[instructions.lhu]
+format = "I"
+args = ["rd", "imm", "rs1"]
+fields = { opcode = 0b0000011, funct3 = 0b101 }
+
+# sb srcv, 2(x1)
+[instructions.sb]
+format = "S"
+args = ["rs2", "imm", "rs1"]
+fields = { opcode = 0b0100011, funct3 = 0b000 }
+[instructions.sh]
+format = "S"
+args = ["rs2", "imm", "rs1"]
+fields = { opcode = 0b0100011, funct3 = 0b001 }
+[instructions.sw]
+format = "S"
+args = ["rs2", "imm", "rs1"]
+fields = { opcode = 0b0100011, funct3 = 0b010 }
+
+
+[instructions.addi]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b000 }
+
+[instructions.slti]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b010 }
+
+[instructions.sltiu]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b011 }
+
+[instructions.xori]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b100 }
+
+[instructions.ori]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b110 }
+
+[instructions.andi]
+format = "I"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b111 }
+
+[instructions.slli]
+format = "Ishift"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b001, shcst = 0b0000000 }
+
+[instructions.srli]
+format = "Ishift"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b101, shcst = 0b0000000 }
+
+[instructions.srai]
+format = "Ishift"
+args = ["rd", "rs1", "imm"]
+fields = { opcode = 0b0010011, funct3 = 0b101, shcst = 0b0100000 }
+
 
 [instructions.add]
 format = "R"
 args = ["rd", "rs1", "rs2"]
 fields = { opcode = 0b0110011, funct3 = 0b000, funct7 = 0b0000000 }
 
-[instructions.addi]
+[instructions.sub]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b000, funct7 = 0b0100000 }
+
+[instructions.sll]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b001, funct7 = 0b0000000 }
+
+[instructions.slt]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b010, funct7 = 0b0000000 }
+
+[instructions.sltu]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b011, funct7 = 0b0000000 }
+
+[instructions.xor]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b100, funct7 = 0b0000000 }
+
+[instructions.srl]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b101, funct7 = 0b0000000 }
+
+[instructions.sra]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b101, funct7 = 0b0100000 }
+
+[instructions.or]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b110, funct7 = 0b0000000 }
+
+[instructions.and]
+format = "R"
+args = ["rd", "rs1", "rs2"]
+fields = { opcode = 0b0110011, funct3 = 0b111, funct7 = 0b0000000 }
+
+[instructions.fence]
 format = "I"
-args = ["rd", "rs1", "imm"]
-fields = { opcode = 0b0010011, funct3 = 0b000 }
+args = ["imm"]
+fields = { opcode = 0b0001111, rd = 0, funct3 = 0b000, rs1 = 0 }
+
+[instructions.ecall]
+format = "I"
+args = []
+fields = { opcode = 0b1110011, rd = 0, funct3 = 0, rs1 = 0, imm = 0 }
+
+[instructions.ebreak]
+format = "I"
+args = []
+fields = { opcode = 0b1110011, rd = 0, funct3 = 0, rs1 = 0, imm = 1 }

@@ -319,6 +319,7 @@ impl RiscVSpec {
                 continue;
             }
             let fp = fp.unwrap();
+            let mut loaded = false;
             for path in std_paths.iter() {
                 let mut p: PathBuf = path.clone();
                 p.push(&fp.as_str().to_ascii_lowercase());
@@ -329,8 +330,12 @@ impl RiscVSpec {
                         let pstr = p.as_os_str().to_string_lossy();
                         eprintln!("Found {} spec in {}", fp.as_str(), pstr);
                     }
+                    loaded = true;
                     break;
                 }
+            }
+            if !loaded {
+                return Err(LoadError::RequirementNotFound(fp.as_str().to_owned()));
             }
         }
 

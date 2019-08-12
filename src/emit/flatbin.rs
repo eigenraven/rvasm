@@ -57,20 +57,12 @@ impl BinaryEmitState {
     }
 }
 
-fn emit_deferred(
-    spec: &arch::RiscVSpec,
-    state: &mut BinaryEmitState,
-) -> Result<(), EmitError> {
+fn emit_deferred(spec: &arch::RiscVSpec, state: &mut BinaryEmitState) -> Result<(), EmitError> {
     let mut to_remove = Vec::new();
     let mut to_emit = Vec::new();
     for (i, (pos, insn)) in state.deferred.iter().enumerate() {
         let pc = *pos as u64;
-        let simp = insn.emitter_simplify(
-            &|cname| {
-                state.find_const(cname, spec)
-            },
-            pc,
-        );
+        let simp = insn.emitter_simplify(&|cname| state.find_const(cname, spec), pc);
         if !simp.1 {
             continue;
         }
@@ -106,7 +98,7 @@ fn emit_binary_recurse(
             }
             emit_deferred(spec, state)?;
             if let Some(defnode) = state.deferred.first() {
-                return Err(EmitError::UnexpectedNodeType(format!("{:?}",defnode)));
+                return Err(EmitError::UnexpectedNodeType(format!("{:?}", defnode)));
             }
             Ok(())
         }
@@ -142,7 +134,10 @@ fn emit_binary_recurse(
                     if args.len() != 1 {
                         return Err(EmitError::InvalidArgumentCount(iname.clone()));
                     }
-                    if let (Node::Argument(box Node::Integer(adr)), _) = args[0].emitter_simplify(&|cname| state.find_const(cname, spec), state.out_pos as u64) {
+                    if let (Node::Argument(box Node::Integer(adr)), _) = args[0].emitter_simplify(
+                        &|cname| state.find_const(cname, spec),
+                        state.out_pos as u64,
+                    ) {
                         let new_out_pos = adr as usize;
                         if new_out_pos > state.out_buf.len() {
                             state
@@ -162,7 +157,12 @@ fn emit_binary_recurse(
                         return Err(EmitError::InvalidArgumentCount(iname.clone()));
                     }
                     if let Node::Argument(box Node::Identifier(defname)) = &args[0] {
-                        if let (Node::Argument(box Node::Integer(val)), _) = args[1].emitter_simplify(&|cname| state.find_const(cname, spec), state.out_pos as u64) {
+                        if let (Node::Argument(box Node::Integer(val)), _) = args[1]
+                            .emitter_simplify(
+                                &|cname| state.find_const(cname, spec),
+                                state.out_pos as u64,
+                            )
+                        {
                             if state.const_set.insert(defname.to_owned(), val).is_none() {
                                 Ok(())
                             } else {
@@ -202,9 +202,7 @@ fn emit_binary_recurse(
 
                     // simplify and defer if necessary
                     let simpinsn = node.emitter_simplify(
-                        &|cname| {
-                            state.find_const(cname, spec)
-                        },
+                        &|cname| state.find_const(cname, spec),
                         state.out_pos as u64,
                     );
                     if !simpinsn.1 {

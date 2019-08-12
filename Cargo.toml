@@ -11,6 +11,8 @@ build = "build.rs"
 smallvec = "0.6.10"
 structopt = "0.2.18"
 toml = "0.5.1"
+petgraph = "0.4.13"
+regex = "1.2.1"
 
 [build-dependencies]
 peg = "0.5.7"

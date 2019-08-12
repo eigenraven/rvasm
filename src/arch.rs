@@ -1,5 +1,6 @@
 use smallvec::SmallVec;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use toml;
 
 #[derive(Clone, Debug, Default)]
@@ -271,6 +272,8 @@ impl RiscVSpec {
 #[derive(Clone, Debug)]
 pub enum LoadError {
     MalformedTOML,
+    InvalidArchSpec,
+    DependencyCycle,
     RequirementNotFound(String),
     ConstNotFound(String),
     MissingNode(String),
@@ -286,11 +289,111 @@ impl RiscVSpec {
     }
 
     pub fn load_single_cfg_string(&mut self, content: &str) -> Result<(), LoadError> {
+        let val = Self::string_to_toml(content)?;
+        self.load_single_toml(&val)
+    }
+
+    pub fn load_single_cfg_file(&mut self, path: &std::path::Path) -> Result<(), LoadError> {
+        let content = std::fs::read_to_string(path).map_err(|_| LoadError::InvalidArchSpec)?;
+        self.load_single_cfg_string(&content)
+    }
+
+    pub fn load_arch_cfg(
+        &mut self,
+        std_paths: &[PathBuf],
+        arch_spec: &str,
+        verbose: bool,
+    ) -> Result<(), LoadError> {
+        use petgraph::prelude::*;
+        use regex::Regex;
+
+        let mut docs = Vec::new();
+        let re = Regex::new(r"(RV[0-9]+[A-Za-z])([A-Z][a-z]*)*").unwrap();
+        let cap = re.captures(arch_spec);
+        if cap.is_none() {
+            return Err(LoadError::InvalidArchSpec);
+        }
+        let cap = cap.unwrap();
+        for fp in cap.iter().skip(1) {
+            if fp.is_none() {
+                continue;
+            }
+            let fp = fp.unwrap();
+            for path in std_paths.iter() {
+                let mut p: PathBuf = path.clone();
+                p.push(&fp.as_str().to_ascii_lowercase());
+                p.set_extension("toml");
+                if let Ok(strdata) = std::fs::read_to_string(&p) {
+                    docs.push(Self::string_to_toml(&strdata)?);
+                    if verbose {
+                        let pstr = p.as_os_str().to_string_lossy();
+                        eprintln!("Found {} spec in {}", fp.as_str(), pstr);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // figure out dependency graph
+        let mut depgraph: StableGraph<usize, ()> =
+            StableGraph::with_capacity(docs.len(), docs.len());
+        let mut codes = HashMap::new();
+        let mut nodes = Vec::new();
+        for (i, doc) in docs.iter().enumerate() {
+            let meta = doc
+                .get("meta")
+                .ok_or_else(|| LoadError::MissingNode("meta".to_owned()))?;
+            let code = meta
+                .get("code")
+                .ok_or_else(|| LoadError::MissingNode("meta.code".to_owned()))?
+                .as_str()
+                .ok_or_else(|| LoadError::BadType("meta.code".to_owned()))?;
+            let nidx = depgraph.add_node(i);
+            codes.insert(code.to_owned(), nidx);
+            nodes.push(nidx);
+        }
+        for (i, doc) in docs.iter().enumerate() {
+            let meta = doc
+                .get("meta")
+                .ok_or_else(|| LoadError::MissingNode("meta".to_owned()))?;
+            let requires = meta.get("requires");
+            if let Some(requires) = requires {
+                let requires = requires
+                    .as_array()
+                    .ok_or_else(|| LoadError::BadType("meta.requires".to_owned()))?;
+                for rq in requires.iter() {
+                    let code = rq
+                        .as_str()
+                        .ok_or_else(|| LoadError::BadType("meta.requires item".to_owned()))?;
+                    let other = codes.get(code);
+                    if other.is_none() {
+                        return Err(LoadError::RequirementNotFound(code.to_owned()));
+                    }
+                    let nidx = nodes[i];
+                    let oidx = *other.unwrap();
+                    depgraph.add_edge(nidx, oidx, ());
+                }
+            }
+        }
+
+        // resolve graph
+        let res = petgraph::algo::toposort(&depgraph, None);
+        if res.is_err() {
+            return Err(LoadError::DependencyCycle);
+        }
+        let res = res.unwrap();
+        for node in res.iter().rev() {
+            self.load_single_toml(&docs[depgraph[*node]])?;
+        }
+
+        Ok(())
+    }
+
+    fn string_to_toml(content: &str) -> Result<toml::Value, LoadError> {
         use toml::Value;
-        let val = content
+        content
             .parse::<Value>()
-            .map_err(|_| LoadError::MalformedTOML)?;
-        self.load_single_toml(val)
+            .map_err(|_| LoadError::MalformedTOML)
     }
 
     /// Load integer or search in consts if a string
@@ -311,7 +414,7 @@ impl RiscVSpec {
         }
     }
 
-    fn load_single_toml(&mut self, doc: toml::Value) -> Result<(), LoadError> {
+    fn load_single_toml(&mut self, doc: &toml::Value) -> Result<(), LoadError> {
         #[allow(non_snake_case)]
         let MissingNode = |s: &'static str| LoadError::MissingNode(s.to_owned());
         #[allow(non_snake_case)]

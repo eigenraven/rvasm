@@ -79,5 +79,8 @@ fn main() {
     }
     println!();
 
-    std::fs::File::create(opt.output_file).unwrap().write_all(&bin).unwrap();
+    std::fs::File::create(opt.output_file)
+        .unwrap()
+        .write_all(&bin)
+        .unwrap();
 }

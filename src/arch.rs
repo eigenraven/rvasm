@@ -178,7 +178,7 @@ pub struct RiscVSpec {
     loaded_codes: Vec<String>,
     loaded_specs: Vec<String>,
     // Consts
-    consts: HashMap<String, i64>,
+    consts: HashMap<String, u64>,
     // Registers
     registers: HashMap<i32, Register>,
     register_name_lookup: HashMap<String, i32>,
@@ -214,7 +214,7 @@ impl RiscVSpec {
 
     // Consts
 
-    pub fn get_const(&self, name: &str) -> Option<i64> {
+    pub fn get_const(&self, name: &str) -> Option<u64> {
         self.consts.get(name).copied()
     }
 
@@ -295,7 +295,7 @@ impl RiscVSpec {
 
     /// Load integer or search in consts if a string
     fn toml_int(
-        consts: &HashMap<String, i64>,
+        consts: &HashMap<String, u64>,
         key: String,
         v: &toml::Value,
     ) -> Result<i64, LoadError> {
@@ -305,7 +305,7 @@ impl RiscVSpec {
             consts
                 .get(s)
                 .ok_or_else(|| LoadError::ConstNotFound(s.to_owned()))
-                .map(|x| *x)
+                .map(|x| *x as i64)
         } else {
             Err(LoadError::BadType(key))
         }
@@ -363,7 +363,7 @@ impl RiscVSpec {
         if let Some(consts) = consts {
             let consts = consts.as_table().ok_or_else(|| BadType("consts"))?;
             for (k, v) in consts.iter() {
-                let intvalue = Self::toml_int(&self.consts, format!("consts.{}", k), v)?;
+                let intvalue = Self::toml_int(&self.consts, format!("consts.{}", k), v)? as u64;
                 self.consts.insert(k.to_owned(), intvalue);
             }
         }

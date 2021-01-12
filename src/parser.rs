@@ -1,10 +1,5 @@
 use crate::arch;
-
-#[allow(ellipsis_inclusive_range_patterns)]
-#[allow(clippy::all)]
-mod grammar {
-    include!(concat!(env!("OUT_DIR"), "/grammar.rs"));
-}
+use crate::grammar;
 
 #[derive(Debug, Clone)]
 pub enum Node {
@@ -146,11 +141,13 @@ impl Node {
     }
 }
 
-pub fn ast_from_str(s: &str, spec: &arch::RiscVSpec) -> Result<Node, grammar::ParseError> {
+pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
+
+pub fn ast_from_str(s: &str, spec: &arch::RiscVSpec) -> Result<Node, ParseError> {
     grammar::top_level(s, spec)
 }
 
-pub fn ast_from_file(path: &str, spec: &arch::RiscVSpec) -> Result<Node, grammar::ParseError> {
+pub fn ast_from_file(path: &str, spec: &arch::RiscVSpec) -> Result<Node, ParseError> {
     use std::fs::File;
     use std::io::prelude::*;
     use std::io::BufReader;

@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 mod arch;
 mod emit;
+mod grammar;
 mod parser;
 mod test;
 
@@ -31,7 +32,7 @@ impl std::str::FromStr for OutputFormat {
 #[structopt(
     name = "rvasm",
     about = "Usage of the rvasm RISC-V assembler",
-    raw(setting = "structopt::clap::AppSettings::ColoredHelp")
+    setting = structopt::clap::AppSettings::ColoredHelp
 )]
 struct Opt {
     #[structopt(help = "Input file path")]

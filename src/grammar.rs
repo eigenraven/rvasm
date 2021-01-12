@@ -1,7 +1,7 @@
 use crate::arch;
 use crate::parser::Node;
 
-peg::parser!{ grammar asmpeg(spec: &arch::RiscVSpec) for str {
+peg::parser! { grammar asmpeg(spec: &arch::RiscVSpec) for str {
 rule comment() = quiet!{";" (!['\n'][_])+}
 rule whitechar() = quiet!{[' '|'\r'|'\t']} / quiet!{comment()} / "\\\n"
 rule whitespace() = quiet!{whitechar()+}
@@ -38,10 +38,10 @@ pub rule expression() -> Node = precedence! {
       x:(@) ">>" y:@ { Node::Shr(box x, box y).simplify() }
       x:(@) ">>>" y:@ { Node::Ashr(box x, box y).simplify() }
       --
-	   x:(@) "+" y:@ { Node::Plus(box x, box y).simplify() }
+       x:(@) "+" y:@ { Node::Plus(box x, box y).simplify() }
       x:(@) "-" y:@ { Node::Minus(box x, box y).simplify() }
       --
-	   x:(@) "*" y:@ { Node::Times(box x, box y).simplify() }
+       x:(@) "*" y:@ { Node::Times(box x, box y).simplify() }
       x:(@) "/" y:@ { Node::Divide(box x, box y).simplify() }
       --
       a:expr_atom() {a}
@@ -62,7 +62,6 @@ pub rule top_element() -> Node = (whitespace() / newline())* n:(label() / instru
 pub rule top_level() -> Node = n:(top_element()*) (whitespace() / newline())* { Node::Root(n) }
 
 }}
-
 
 //include!{"../expanded.rs"}
 

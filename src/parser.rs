@@ -74,47 +74,47 @@ impl Node {
 
             Negation(box a) => {
                 let sa = a.emitter_simplify(const_provider, pc);
-                (Negation(box sa.0).simplify(), sa.1)
+                (Negation(Box::new(sa.0)).simplify(), sa.1)
             }
             Plus(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Plus(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Plus(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
             Minus(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Minus(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Minus(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
             Times(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Times(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Times(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
             Divide(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Divide(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Divide(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
             Shl(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Shl(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Shl(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
             Shr(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Shr(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Shr(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
             Ashr(box a, box b) => {
                 let sa = a.emitter_simplify(const_provider, pc);
                 let sb = b.emitter_simplify(const_provider, pc);
-                (Ashr(box sa.0, box sb.0).simplify(), sa.1 && sb.1)
+                (Ashr(Box::new(sa.0), Box::new(sb.0)).simplify(), sa.1 && sb.1)
             }
 
             Argument(box node) => {
                 let s = node.emitter_simplify(const_provider, pc);
-                (Argument(box s.0), s.1)
+                (Argument(Box::new(s.0)), s.1)
             }
             Instruction(iname, args) => {
                 let mut succ = true;

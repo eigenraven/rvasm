@@ -1,4 +1,3 @@
-#![feature(box_syntax)]
 #![feature(box_patterns)]
 #![warn(clippy::all)]
 #![allow(dead_code)]

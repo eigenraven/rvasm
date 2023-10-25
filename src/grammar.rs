@@ -25,7 +25,7 @@ rule str_char<Q>(quote: rule<Q>) -> u8 = escape() / c:$(!quote() [_]) { c.as_byt
 rule char_literal() -> Node = "'" s:str_char(<"'">) "'" { Node::Integer(s as u64) }
 rule bytes_literal() -> Node = "\"" s:str_char(<"\"">)* "\"" { Node::StringLiteral(s) }
 
-rule negation() -> Node = "-" e:expression() { Node::Negation(box e) }
+rule negation() -> Node = "-" e:expression() { Node::Negation(Box::new(e)) }
 pub rule expr_atom() -> Node = whitespace()? "(" whitespace()? e:expression() whitespace()? ")" whitespace()? {e.simplify()}
                       / whitespace()? n:negation() whitespace()? {n.simplify()}
                       / whitespace()? i:integer() whitespace()? {i}
@@ -34,21 +34,21 @@ pub rule expr_atom() -> Node = whitespace()? "(" whitespace()? e:expression() wh
                       / whitespace()? c:char_literal() whitespace()? {c}
 
 pub rule expression() -> Node = precedence! {
-      x:(@) "<<" y:@ { Node::Shl(box x, box y).simplify() }
-      x:(@) ">>" y:@ { Node::Shr(box x, box y).simplify() }
-      x:(@) ">>>" y:@ { Node::Ashr(box x, box y).simplify() }
+      x:(@) "<<" y:@ { Node::Shl(Box::new(x), Box::new(y)).simplify() }
+      x:(@) ">>" y:@ { Node::Shr(Box::new(x), Box::new(y)).simplify() }
+      x:(@) ">>>" y:@ { Node::Ashr(Box::new(x), Box::new(y)).simplify() }
       --
-       x:(@) "+" y:@ { Node::Plus(box x, box y).simplify() }
-      x:(@) "-" y:@ { Node::Minus(box x, box y).simplify() }
+       x:(@) "+" y:@ { Node::Plus(Box::new(x), Box::new(y)).simplify() }
+      x:(@) "-" y:@ { Node::Minus(Box::new(x), Box::new(y)).simplify() }
       --
-       x:(@) "*" y:@ { Node::Times(box x, box y).simplify() }
-      x:(@) "/" y:@ { Node::Divide(box x, box y).simplify() }
+       x:(@) "*" y:@ { Node::Times(Box::new(x), Box::new(y)).simplify() }
+      x:(@) "/" y:@ { Node::Divide(Box::new(x), Box::new(y)).simplify() }
       --
       a:expr_atom() {a}
 }
 
 pub rule label() -> Node = whitespace()? i:idstr() whitespace()? ":" { Node::Label(i.to_owned()) } / expected!("label")
-pub rule argument() -> Node = whitespace()? e:(register() / expression()) whitespace()? {Node::Argument(box e)}
+pub rule argument() -> Node = whitespace()? e:(register() / expression()) whitespace()? {Node::Argument(Box::new(e))}
 rule instruction0() -> Node = whitespace()? nm:idstr() whitespace()? { Node::Instruction(nm.to_owned(), vec![]) }
 rule instruction1() -> Node = whitespace()? nm:idstr() whitespace() a0:argument() whitespace()? { Node::Instruction(nm.to_owned(), vec![a0]) }
 rule instructionN() -> Node = whitespace()? nm:idstr() whitespace() a0:argument() aN:( "," an:argument() {an} )+ {
